@@ -1,0 +1,43 @@
+{
+  "app": {
+    "name": "SaaS Boilerplate",
+    "title": "SaaS Boilerplate"
+  },
+  "login": {
+    "title": "Sign in",
+    "subtitle": "Multi-tenant SaaS workspace",
+    "email": "Email",
+    "password": "Password",
+    "workspace": "Workspace",
+    "workspaceHint": "Your organization slug (e.g. system)",
+    "rememberEmail": "Remember email and workspace",
+    "submit": "Sign in",
+    "connecting": "Connecting to the server…",
+    "loadingForm": "Loading sign-in form",
+    "signingIn": "Signing in",
+    "errorGeneric": "Sign-in failed.",
+    "errorNetwork": "Could not reach the API. Ensure the backend is running (default http://127.0.0.1:5080) and start the UI with yarn dev so the Vite proxy is active."
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome",
+    "subtitle": "Your multi-tenant workspace is ready. Add features under src/features when you extend the boilerplate.",
+    "signedInAs": "Signed in as",
+    "role": "Role",
+    "workspace": "Workspace",
+    "tenantId": "Organization ID",
+    "userId": "User ID",
+    "forbidden": "You do not have permission to access that section."
+  },
+  "nav": {
+    "home": "Home",
+    "logout": "Sign out",
+    "expandMenu": "Expand menu",
+    "collapseMenu": "Collapse menu",
+    "goHome": "Go to home"
+  },
+  "validation": {
+    "required": "Required",
+    "invalidSlug": "Use lowercase letters, numbers, and hyphens only"
+  }
+}

@@ -1,0 +1,9 @@
+@use 'vuetify/settings' with (
+  $font-size-root: 1rem
+);
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}

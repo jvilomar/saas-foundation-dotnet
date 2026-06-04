@@ -1,0 +1,25 @@
+## .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+.idea/
+
+## Secrets
+appsettings.*.local.json
+src/Api/appsettings.Development.json
+*.pfx
+
+## Frontend
+src/Web/node_modules/
+src/Web/dist/
+src/Web/.env
+
+## Cursor (local AI rules — do not publish)
+.cursorrules
+.cursor/
+
+## OS
+.DS_Store
+Thumbs.db

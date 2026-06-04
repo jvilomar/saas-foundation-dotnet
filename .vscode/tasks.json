@@ -1,0 +1,122 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Setup: dotnet restore",
+      "type": "process",
+      "command": "dotnet",
+      "args": ["restore"],
+      "options": {
+        "cwd": "${workspaceFolder}/src/Api"
+      },
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "Setup: install frontend packages",
+      "type": "shell",
+      "command": "if (Get-Command yarn -ErrorAction SilentlyContinue) { yarn install } else { npm install }",
+      "options": {
+        "cwd": "${workspaceFolder}/src/Web"
+      },
+      "windows": {
+        "options": {
+          "shell": {
+            "executable": "powershell.exe",
+            "args": ["-NoProfile", "-Command"]
+          }
+        }
+      },
+      "linux": {
+        "command": "command -v yarn >/dev/null && yarn install || npm install"
+      },
+      "osx": {
+        "command": "command -v yarn >/dev/null && yarn install || npm install"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "1. Setup: Restore & Install",
+      "dependsOn": ["Setup: dotnet restore", "Setup: install frontend packages"],
+      "dependsOrder": "parallel",
+      "problemMatcher": []
+    },
+    {
+      "label": "2. Database: Update",
+      "type": "process",
+      "command": "dotnet",
+      "args": ["ef", "database", "update"],
+      "options": {
+        "cwd": "${workspaceFolder}/src/Api"
+      },
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "3. Run: Backend API",
+      "type": "process",
+      "command": "dotnet",
+      "args": ["run"],
+      "options": {
+        "cwd": "${workspaceFolder}/src/Api",
+        "env": {
+          "ASPNETCORE_ENVIRONMENT": "Development"
+        }
+      },
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "aspnetcore",
+        "pattern": {
+          "regexp": "."
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^\\s*Building\\.\\.\\.",
+          "endsPattern": "(Now listening on:|Application started\\.)"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "group": "run"
+      }
+    },
+    {
+      "label": "4. Run: Frontend",
+      "type": "shell",
+      "command": "if (Get-Command yarn -ErrorAction SilentlyContinue) { yarn dev } else { npm run dev }",
+      "options": {
+        "cwd": "${workspaceFolder}/src/Web"
+      },
+      "windows": {
+        "options": {
+          "shell": {
+            "executable": "powershell.exe",
+            "args": ["-NoProfile", "-Command"]
+          }
+        }
+      },
+      "linux": {
+        "command": "command -v yarn >/dev/null && yarn dev || npm run dev"
+      },
+      "osx": {
+        "command": "command -v yarn >/dev/null && yarn dev || npm run dev"
+      },
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "vite",
+        "pattern": {
+          "regexp": "."
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".",
+          "endsPattern": "(Local:\\s+http|ready in \\d+)"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "group": "run"
+      }
+    }
+  ]
+}
