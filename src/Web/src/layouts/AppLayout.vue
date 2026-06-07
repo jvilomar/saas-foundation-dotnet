@@ -40,6 +40,22 @@
         :title="t('nav.home')"
         to="/dashboard"
       />
+      <v-list-item
+        v-if="showUsersNav"
+        :active="route.name === 'users'"
+        link
+        prepend-icon="mdi-account-group-outline"
+        :title="t('nav.users')"
+        to="/users"
+      />
+      <v-list-item
+        v-if="showRolesNav"
+        :active="route.name === 'roles'"
+        link
+        prepend-icon="mdi-shield-account-outline"
+        :title="t('nav.roles')"
+        to="/roles"
+      />
     </v-list>
 
     <template #append>
@@ -96,11 +112,15 @@
   import { RouterLink, useRoute } from 'vue-router'
 
   import { useAuthStore } from '@/stores/authStore'
+  import { canManageRoles, canManageUsers } from '@/utils/roleAccess'
 
   const { t } = useI18n()
   const authStore = useAuthStore()
   const route = useRoute()
   const collapsed = ref(false)
+
+  const showUsersNav = computed(() => canManageUsers(authStore.role))
+  const showRolesNav = computed(() => canManageRoles(authStore.role))
 
   const userInitials = computed(() => {
     const e = (authStore.email ?? '').trim()

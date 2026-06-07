@@ -6,10 +6,10 @@ A production-ready **multi-tenant SaaS starter** monorepo: **.NET 10** minimal A
 
 | Layer | Stack | Highlights |
 | ------- | -------- | ------------ |
-| **API** | ASP.NET Core 10, EF Core 10 | Vertical slices, JWT auth, workspace-slug login, Serilog, global exception handling, QuestPDF infrastructure |
-| **Data** | PostgreSQL 16 (Docker) | RLS + EF query filters, DB-backed roles, Stripe-style display IDs (`ten_…`, `usr_…`) |
-| **Web** | Vue 3, Vite, Pinia, vue-i18n | Workspace login (no GUID), JWT session, API interceptors, dashboard shell (English UI) |
-| **Tests** | xUnit, FluentAssertions | Sample tests for display ID generation; `Microsoft.AspNetCore.Mvc.Testing` ready for integration tests |
+| **API** | ASP.NET Core 10, EF Core 10 | Vertical slices, JWT auth, workspace-slug login, automatic audit trail (`SaveChangesInterceptor`), Users/Roles CRUD, Serilog, global exception handling, QuestPDF infrastructure |
+| **Data** | PostgreSQL 16 (Docker) | RLS + EF query filters, DB-backed roles, Stripe-style display IDs (`ten_…`, `usr_…`), auditable entities (`CreatedAt` / `CreatedBy` / `LastModifiedAt` / `LastModifiedBy`) |
+| **Web** | Vue 3, Vite, Pinia, Vuetify 3, ofetch, vue-i18n | Workspace login, JWT session, Users & Roles management UI (LIS-style catalog pages), role-based navigation |
+| **Tests** | xUnit, **Shouldly** | Unit tests (in-memory EF, interceptors, JWT claims) + integration tests (`WebApplicationFactory` + Testcontainers PostgreSQL) |
 
 ## Repository layout
 
@@ -22,7 +22,9 @@ SaaS.Boilerplate/
 │   ├── Api/
 │   │   ├── appsettings.Development.example.json   # Copy to appsettings.Development.json (gitignored)
 │   │   └── …                            # Backend (SaaS.Api)
-│   ├── Tests/                           # xUnit (SaaS.Api.Tests)
+│   ├── Tests/
+│   │   ├── SaaS.Api.Tests/              # Unit tests (Shouldly, EF InMemory)
+│   │   └── SaaS.Api.IntegrationTests/   # Integration tests (Shouldly, Testcontainers)
 │   └── Web/                             # Frontend (Vue 3)
 ├── Directory.Packages.props
 ├── Directory.Build.props
@@ -113,20 +115,86 @@ cd src/Web && yarn dev
 dotnet test SaaS.Boilerplate.sln
 ```
 
+**Run tests separately:**
+
+```bash
+# Unit tests only (no Docker required)
+dotnet test src/Tests/SaaS.Api.Tests/SaaS.Api.Tests.csproj
+
+# Integration tests (requires Docker Desktop / Docker Engine running)
+dotnet test src/Tests/SaaS.Api.IntegrationTests/SaaS.Api.IntegrationTests.csproj
+```
+
 ### Logging
 
 The API uses **Serilog** with structured console output. Levels are configured in `appsettings.json` (and overridden in Development). Fatal startup errors are logged before exit.
 
 ## Architecture principles
 
+### Backend (hybrid VSA + clean domain)
+
 - **Vertical slices** under `src/Api/Features/` — no MediatR, no generic repository.
+- **Domain abstractions** under `src/Api/Domain/Abstractions/` (e.g. `IAuditableEntity`) for cross-cutting entity contracts.
 - **EF Core** `AppDbContext` injected directly into feature handlers.
 - **Immutability** — DTOs as C# `record` types; Vue API types aligned with backend responses.
-- **Tenant context** — `TenantMiddleware` + PostgreSQL RLS session variables + EF query filters.
+- **Tenant context** — `ITenantContext` populated by `TenantMiddleware` from JWT claims (`tenant_id`, `sub`); PostgreSQL RLS session variables + EF global query filters on `User`.
+
+### Automatic audit trail
+
+Entities implementing `IAuditableEntity` (`Tenant`, `User`, `AppRole`) receive audit fields automatically via `AuditableEntityInterceptor`:
+
+| Field | Set on insert | Set on update | Notes |
+| ------- | ------------- | ------------- | ----- |
+| `CreatedAt` / `CreatedBy` | Yes | No (protected) | Not overwritten on modify |
+| `LastModifiedAt` / `LastModifiedBy` | Yes | Yes | Uses `ITenantContext.UserId`, or `"system"` when no user context (seeder, migrations) |
+
+Handlers must **not** set audit columns manually — the interceptor owns them.
+
+### API features (current)
+
+| Area | Routes | Authorization |
+| ------ | -------- | --------------- |
+| Auth | `POST /api/auth/login` | Anonymous |
+| Tenants | `POST /api/tenants` | `SuperAdmin` |
+| Users | `GET/POST/PUT/DELETE /api/users` | `TenantAdmin`, `SuperAdmin` |
+| Roles | `GET/POST/PUT/DELETE /api/roles` | `SuperAdmin` (mutations); `GET` also allowed for `TenantAdmin` (role picker) |
+
+JWT claims include `tenant_id`, `ClaimTypes.Role`, and `sub` (user id).
+
+### Frontend
+
+- **ofetch** client (`src/Web/src/plugins/api.ts`) attaches `Authorization: Bearer` and `X-Tenant-ID` on every request.
+- **Users** (`/users`) and **Roles** (`/roles`) views use LIS-style catalog pages: compact `v-data-table`, toolbar search, `v-dialog` forms, delete confirmation, snackbars.
+- Sidebar links are **role-gated** (`TenantAdmin` / `SuperAdmin` for Users; `SuperAdmin` for Roles).
+
+## Testing
+
+We use **[Shouldly](https://github.com/shouldly/shouldly)** for assertions.
+
+| Project | Purpose | Key dependencies |
+| --------- | --------- | ------------------ |
+| `SaaS.Api.Tests` | Fast unit tests | xUnit, Shouldly, EF Core InMemory |
+| `SaaS.Api.IntegrationTests` | End-to-end API tests | xUnit, Shouldly, `Microsoft.AspNetCore.Mvc.Testing`, Testcontainers.PostgreSql |
+
+**Unit test coverage includes:** display ID generation, `AuditableEntityInterceptor` stamping, `JwtTokenService` claim emission.
+
+**Integration test infrastructure:**
+
+- `CustomWebApplicationFactory` — shared `[Collection("Integration")]`, spins up PostgreSQL 16 via Testcontainers, applies EF migrations, overrides connection string.
+- `BaseIntegrationTest` — provides `HttpClient` and scoped `AppDbContext` for DB assertions.
+- API runs under `Testing` environment during integration tests (Serilog bootstrap skipped to allow a single shared host).
+
+Integration tests require **Docker** to be running. If Docker is unavailable, unit tests still pass independently.
 
 ## License
 
 Use and adapt freely for your own SaaS products. Replace secrets, branding, and seed data before production.
+
+## 🤝 Built with AI
+
+I want to be completely transparent: I couldn't have built this boilerplate at this speed and with this level of architectural rigor alone. This project is the result of intense pair-programming sessions using **Google Gemini** for high-level architectural design and problem-solving, alongside **Cursor AI** for rapid code generation and refactoring.
+
+If you are a solo developer or bootstrapping a SaaS, I highly recommend leveraging these tools to multiply your output!
 
 ## Disclaimer
 

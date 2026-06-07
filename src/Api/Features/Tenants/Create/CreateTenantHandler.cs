@@ -35,7 +35,6 @@ public static class CreateTenantHandler
             Id = Guid.NewGuid(),
             Slug = slug,
             Name = name,
-            CreatedAt = DateTime.UtcNow,
         };
 
         db.Tenants.Add(tenant);

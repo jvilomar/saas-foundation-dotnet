@@ -5,7 +5,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
 using SaaS.Api.Features.Auth.Login;
+using SaaS.Api.Features.Roles;
 using SaaS.Api.Features.Tenants.Create;
+using SaaS.Api.Features.Users;
 using SaaS.Api.Infrastructure.Database;
 using SaaS.Api.Infrastructure.Documents;
 using SaaS.Api.Infrastructure.Middlewares;
@@ -15,18 +17,26 @@ using Scalar.AspNetCore;
 
 using Serilog;
 
-Log.Logger = new LoggerConfiguration()
-    .WriteTo.Console()
-    .CreateBootstrapLogger();
+WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+
+bool useSerilog = !builder.Environment.IsEnvironment("Testing");
+
+if (useSerilog)
+{
+    Log.Logger = new LoggerConfiguration()
+        .WriteTo.Console()
+        .CreateBootstrapLogger();
+}
 
 try
 {
-    WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
-
-    builder.Host.UseSerilog((context, services, configuration) => configuration
-        .ReadFrom.Configuration(context.Configuration)
-        .ReadFrom.Services(services)
-        .Enrich.FromLogContext());
+    if (useSerilog)
+    {
+        builder.Host.UseSerilog((context, services, configuration) => configuration
+            .ReadFrom.Configuration(context.Configuration)
+            .ReadFrom.Services(services)
+            .Enrich.FromLogContext());
+    }
 
     builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
 
@@ -59,10 +69,13 @@ try
     builder.Services.AddPdfInfrastructure();
 
     builder.Services.AddScoped<RlsConnectionInterceptor>();
+    builder.Services.AddScoped<AuditableEntityInterceptor>();
     builder.Services.AddDbContext<AppDbContext>((sp, options) =>
     {
         options.UseNpgsql(builder.Configuration.GetConnectionString("Default"));
-        options.AddInterceptors(sp.GetRequiredService<RlsConnectionInterceptor>());
+        options.AddInterceptors(
+            sp.GetRequiredService<RlsConnectionInterceptor>(),
+            sp.GetRequiredService<AuditableEntityInterceptor>());
     });
 
     builder.Services.AddHealthChecks()
@@ -84,6 +97,8 @@ try
     app.MapHealthChecks("/health");
     app.MapLoginEndpoint();
     app.MapCreateTenantEndpoint();
+    app.MapRoleEndpoints();
+    app.MapUserEndpoints();
 
     await app.SeedDatabaseAsync();
 
@@ -91,11 +106,21 @@ try
 }
 catch (Exception ex)
 {
-    Log.Fatal(ex, "Application terminated unexpectedly");
+    if (useSerilog)
+    {
+        Log.Fatal(ex, "Application terminated unexpectedly");
+    }
+    else
+    {
+        Console.Error.WriteLine(ex);
+    }
 }
 finally
 {
-    Log.CloseAndFlush();
+    if (useSerilog)
+    {
+        Log.CloseAndFlush();
+    }
 }
 
 public partial class Program;

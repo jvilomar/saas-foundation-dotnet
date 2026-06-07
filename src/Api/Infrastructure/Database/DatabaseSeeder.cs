@@ -44,7 +44,6 @@ public static class DatabaseSeeder
             Id = Guid.NewGuid(),
             Slug = DefaultWorkspaceSlug,
             Name = DefaultTenantName,
-            CreatedAt = DateTime.UtcNow,
         };
 
         db.Tenants.Add(tenant);

@@ -23,6 +23,17 @@ public sealed class AppRoleConfiguration : IEntityTypeConfiguration<AppRole>
         builder.Property(r => r.IsSystem)
             .IsRequired();
 
+        builder.Property(r => r.CreatedAt)
+            .IsRequired();
+
+        builder.Property(r => r.CreatedBy)
+            .HasMaxLength(256);
+
+        builder.Property(r => r.LastModifiedAt);
+
+        builder.Property(r => r.LastModifiedBy)
+            .HasMaxLength(256);
+
         builder.HasIndex(r => r.Name)
             .IsUnique();
     }
