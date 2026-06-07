@@ -30,6 +30,14 @@ public sealed class TenantConfiguration : IEntityTypeConfiguration<Tenant>
         builder.Property(t => t.CreatedAt)
             .IsRequired();
 
+        builder.Property(t => t.CreatedBy)
+            .HasMaxLength(256);
+
+        builder.Property(t => t.LastModifiedAt);
+
+        builder.Property(t => t.LastModifiedBy)
+            .HasMaxLength(256);
+
         builder.HasIndex(t => t.Slug)
             .IsUnique();
 

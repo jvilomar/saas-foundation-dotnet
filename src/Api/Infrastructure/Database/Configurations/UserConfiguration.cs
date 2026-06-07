@@ -30,6 +30,17 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
             .HasMaxLength(500)
             .IsRequired();
 
+        builder.Property(u => u.CreatedAt)
+            .IsRequired();
+
+        builder.Property(u => u.CreatedBy)
+            .HasMaxLength(256);
+
+        builder.Property(u => u.LastModifiedAt);
+
+        builder.Property(u => u.LastModifiedBy)
+            .HasMaxLength(256);
+
         builder.HasIndex(u => new { u.TenantId, u.Email })
             .IsUnique();
 

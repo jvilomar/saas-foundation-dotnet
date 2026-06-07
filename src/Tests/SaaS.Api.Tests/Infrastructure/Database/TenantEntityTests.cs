@@ -1,4 +1,4 @@
-using FluentAssertions;
+using Shouldly;
 
 using SaaS.Api.Infrastructure.Database;
 using SaaS.Api.Infrastructure.Database.ValueGenerators;
@@ -17,9 +17,9 @@ public sealed class TenantEntityTests
         var valueGenerator = new TenantDisplayIdValueGenerator();
         string displayId = valueGenerator.Next(null!);
 
-        displayId.Should().StartWith(TenantDisplayIdPrefix);
-        displayId.Should().HaveLength(ExpectedTenantDisplayIdLength);
-        displayId[TenantDisplayIdPrefix.Length..].Should().MatchRegex("^[A-Za-z0-9_-]{8}$");
+        displayId.ShouldStartWith(TenantDisplayIdPrefix);
+        displayId.Length.ShouldBe(ExpectedTenantDisplayIdLength);
+        displayId[TenantDisplayIdPrefix.Length..].ShouldMatch("^[A-Za-z0-9_-]{8}$");
     }
 
     [Fact]
@@ -29,8 +29,8 @@ public sealed class TenantEntityTests
             .Select(_ => DisplayIdGenerator.NewTenantDisplayId())
             .ToHashSet(StringComparer.Ordinal);
 
-        ids.Should().HaveCount(50);
-        ids.Should().OnlyContain(id => id.StartsWith(TenantDisplayIdPrefix, StringComparison.Ordinal));
+        ids.Count.ShouldBe(50);
+        ids.ShouldAllBe(id => id.StartsWith(TenantDisplayIdPrefix, StringComparison.Ordinal));
     }
 
     [Fact]
@@ -39,7 +39,7 @@ public sealed class TenantEntityTests
         const string userPrefix = "usr_";
         string displayId = DisplayIdGenerator.NewUserDisplayId();
 
-        displayId.Should().StartWith(userPrefix);
-        displayId.Should().HaveLength(userPrefix.Length + DisplayIdRandomLength);
+        displayId.ShouldStartWith(userPrefix);
+        displayId.Length.ShouldBe(userPrefix.Length + DisplayIdRandomLength);
     }
 }
